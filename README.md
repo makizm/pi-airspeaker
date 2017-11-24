@@ -51,6 +51,8 @@ Replace existing asound.conf in /etc/
 
 6. Install mute script
 git clone 
-udo mv ./mute.py /usr/local/bin/
+sudo mv ./mute.py /usr/local/bin/
 sudo chmod +x /usr/local/bin/mute.py
+sudo chown root:staff /usr/local/bin/mute.py
+
 

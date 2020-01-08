@@ -56,3 +56,12 @@ sudo chmod +x /usr/local/bin/mute.py
 sudo chown root:staff /usr/local/bin/mute.py
 
 
+## Circuit Diagram
+<img src="https://raw.githubusercontent.com/makizm/pi-airspeaker/master/circuit_diagram.png"/>
+
+## Parts used to build hardware
+1. Polkaudio RC60i speaker
+2. LM2596 DC/DC power supply step down module
+3. TPA3118 mono amplifier
+4. CM109 USB audio adapter
+5. AOP605 IC

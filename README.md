@@ -1,60 +1,79 @@
 # pi-airspeaker
 
+## Raspberry Pi tuning (optional)
 1. Disable swapping
-sudo dphys-swapfile swapoff
-sudo dphys-swapfile uninstall
-sudo update-rc.d dphys-swapfile remove
+   ```
+   sudo dphys-swapfile swapoff
+    sudo dphys-swapfile uninstall
+    sudo update-rc.d dphys-swapfile remove
+   ```
 
-2. Redirect /var/log to ram.
-Add the following lines to the end of /etc/fastab
+1. Redirect /var/log to ram.
+   Add the following lines to the end of /etc/fastab
+    ```
+    tmpfs	/var/log	tmpfs	defaults,noatime,mode=0755 0 0
+    tmpfs	/tmp		tmpfs	defaults,noatime,mode=1777 0 0
+    ```
 
-tmpfs	/var/log	tmpfs	defaults,noatime,mode=0755 0 0
-tmpfs	/tmp		tmpfs	defaults,noatime,mode=1777 0 0
+## Install Docker
+https://docs.docker.com/engine/install/debian/
 
-3. Install shairport
-sudo apt-get update
-sudo apt-get upgrade
-sudo apt-get install -y git autoconf libtool libdaemon-dev libasound2-dev libpopt-dev libconfig-dev
-sudo apt-get install -y avahi-daemon libavahi-client-dev
-sudo apt-get install -y libssl-dev
+## Build and run as Docker container
+1. Download the stuff.
+    ```
+    sudo apt-get update
+    sudo apt-get install -y git
 
-git clone https://github.com/mikebrady/shairport-sync.git
-cd shairport-sync/
-autoreconf -i -f
-./configure --with-alsa --with-avahi --with-ssl=openssl --with-systemd --with-metadata
-make
-sudo make install
-sudo systemctl enable shairport-sync
+    git clone https://github.com/mikebrady/shairport-sync.git
+    cd shairport-sync/
+    ```
+2. Find out output device ID by running command `aplay -l`.
+    ```
+    # aplay -l
+    **** List of PLAYBACK Hardware Devices ****
+    card 0: Headphones [bcm2835 Headphones], device 0: bcm2835 Headphones [bcm2835 Headphones]
+    Subdevices: 8/8
+    Subdevice #0: subdevice #0
+    Subdevice #1: subdevice #1
+    Subdevice #2: subdevice #2
+    Subdevice #3: subdevice #3
+    Subdevice #4: subdevice #4
+    Subdevice #5: subdevice #5
+    Subdevice #6: subdevice #6
+    Subdevice #7: subdevice #7
+    card 1: vc4hdmi [vc4-hdmi], device 0: MAI PCM i2s-hifi-0 [MAI PCM i2s-hifi-0]
+    Subdevices: 1/1
+    Subdevice #0: subdevice #0
+    card 2: Set [C-Media USB Headphone Set], device 0: USB Audio [USB Audio]
+    Subdevices: 1/1
+    Subdevice #0: subdevice #0
+    ```
+3. Configure Alsa output device from previous step. In this case I am using **C-Media USB** card `2`, so the `hw` ID will be `2`. Audio output device ID is always `0` so can be omitted.
+   - Edit configuration file `shairport-sync.conf` and set `output_device` property under `alsa` to `hw:2`.
+4. Build Docker image
+   ```
+   docker build --tag pi-airspeaker .
+   ```
+5. Start Docker container
+   
+   a. Start as service using default configuration file
+   ```
+    docker run -d --restart unless-stopped \
+    --net host \
+    --device /dev/snd \
+    --device /dev/gpiomem \
+    --name pi-player pi-airspeaker
+    ```
+    b. Start as service using persistent configuration file.
+    ```
+    docker run -d --restart unless-stopped \
+    --net host \
+    --device /dev/snd \
+    --device /dev/gpiomem \
+    --volume /etc/shairport-sync.conf:/etc/shairport-sync.conf:ro
+    --name pi-player pi-airspeaker
 
-4. Configure sound to go via USB sound card
-sudo amixer cset numid=3 1
-
-Add the following lines to /etc/asound.conf
-pcm.!default  {
- type hw card 1
-}
-ctl.!default {
- type hw card 1
-}
-
-5. Tunables
-Add the following lines to /boot/config.txt
-audio_pwm_mode=2
-disable_audio_dither=1
-
-Adjust max volume to reasonable level
-sudo alsamixer -c 1
-
-6. Configure shairport
-Replace existing shairport-sync.conf in /usr/local/etc/
-Replace existing asound.conf in /etc/
-
-6. Install mute script
-git clone 
-sudo mv ./mute.py /usr/local/bin/
-sudo chmod +x /usr/local/bin/mute.py
-sudo chown root:staff /usr/local/bin/mute.py
-
+    ```
 
 ## Circuit Diagram
 <img src="https://raw.githubusercontent.com/makizm/pi-airspeaker/master/circuit_diagram.png"/>
